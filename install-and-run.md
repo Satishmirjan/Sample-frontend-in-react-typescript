@@ -1,21 +1,16 @@
-# Installation and Setup Guide
+ Installation and Setup Guide
 
-## Quick Start
 
 1. **Install Dependencies**
 
-   ```bash
    npm install
-   ```
 
 2. **Start Development Server**
 
-   ```bash
    npm run dev
-   ```
 
 3. **Open Browser**
-   Navigate to `http://localhost:5173`
+ `http://localhost:5173`
 
 ## What's Included
 

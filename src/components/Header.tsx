@@ -1,6 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Zap } from 'lucide-react'
 import { Button } from './ui/button'
 
 export function Header() {
@@ -23,7 +22,7 @@ export function Header() {
         <div className="flex items-center justify-between">
           <Link to="/" className="flex items-center space-x-2">
             <div className="bg-blue-600 p-2 rounded-lg">
-              <Zap className="h-6 w-6 text-white" />
+            <img src="/jk-tyre-logo-header.webp" alt="JK Tyre logo" className="h-8 w-auto md:h-10 object-contain" />  
             </div>
             <span className="text-xl font-bold text-gray-900">
               Tyre Data Analyzer

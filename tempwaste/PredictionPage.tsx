@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Brain, Upload, Download, Thermometer, Weight, Calendar, TrendingUp, Settings } from 'lucide-react'
-import { Button } from '../components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
-import { Input } from '../components/ui/input'
-import { Loading } from '../components/ui/loading'
-import { FilterPanel } from '../components/ui/filter'
+import { Button } from '../src/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '../src/components/ui/card'
+import { Input } from '../src/components/ui/input'
+import { Loading } from '../src/components/ui/loading'
+import { FilterPanel } from '../src/components/ui/filter'
 
 interface PredictionResult {
   predictedTemperature: number
