@@ -26,7 +26,7 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src", "tempwaste/ConvertPage.tsx", "tempwaste/PredictionPage.tsx"],
+  "include": ["src", "tempwaste/ConvertPage.tsx", "tempwaste/PredictionPage.tsx", "tempwaste/filter.tsx"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
 

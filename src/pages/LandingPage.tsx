@@ -1,6 +1,11 @@
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
-import { FileSpreadsheet, Brain, ArrowRight, CheckCircle } from 'lucide-react'
+import { FileSpreadsheet, Brain, ArrowRight, 
+  TrendingUp, 
+  ScanLine, 
+  SlidersHorizontal, 
+  LayoutDashboard, 
+  FolderOpen} from 'lucide-react'
 import { Button } from '../components/ui/button'
 import { Card, CardContent } from '../components/ui/card'
 
@@ -8,18 +13,18 @@ export function LandingPage() {
   const features = [
     {
       icon: FileSpreadsheet,
-      title: 'Smart Data Extraction',
-      description: 'Automatically extract key experiment data like temperature, weight, and day readings from PDF reports'
+      title: 'Convert Reports to Excel',
+      description: 'Easily upload tyre test reports in PDF, DOCX, or CSV formats and convert them into clean Excel sheets. Extract important data like temperature, weight, and test readings in just one click.'
     },
     {
-      icon: Brain,
-      title: 'AI-Powered Predictions',
-      description: 'Get intelligent predictions for tyre performance using advanced machine learning algorithms'
+      icon: TrendingUp,
+      title: 'Smart Prediction Engine',
+      description: 'Use our built-in AI model to predict tyre performance parameters such as wear rate, grip, or temperature response based on past data. Get quick insights and downloadable results.'
     },
     {
-      icon: CheckCircle,
-      title: 'Excel Export',
-      description: 'Seamlessly convert your data to Excel format for further analysis and reporting'
+      icon: ScanLine,
+      title: 'Automated Data Extraction',
+      description: 'No manual typing! The system automatically identifies tables, measurements, and key metrics from your reports using advanced parsing and OCR techniques.'
     }
   ]
 
@@ -35,7 +40,7 @@ export function LandingPage() {
           >
             <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6">
               Tyre Data{' '}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FCC61D] to-[#000000]">
                 Analyzer
               </span>
             </h1>
@@ -97,13 +102,13 @@ export function LandingPage() {
             >
               <Card className="h-full hover:shadow-lg transition-shadow duration-300">
                 <CardContent className="p-6 text-center">
-                  <div className="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <feature.icon className="h-8 w-8 text-blue-600" />
+                  <div className="bg-[#FFF7DD] w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <feature.icon className="h-8 w-8 text-[#000000]" />
                   </div>
                   <h3 className="text-xl font-semibold text-gray-900 mb-3">
                     {feature.title}
                   </h3>
-                  <p className="text-gray-600">
+                  <p className="text-gray-700">
                     {feature.description}
                   </p>
                 </CardContent>
@@ -114,7 +119,7 @@ export function LandingPage() {
       </section>
 
       {/* CTA Section */}
-      <section className="bg-gradient-to-r from-blue-600 to-indigo-600 py-20">
+      <section className="bg-gradient-to-r from-[#FCC61D] to-[#000000] py-20">
         <div className="container mx-auto px-4 text-center">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -125,7 +130,7 @@ export function LandingPage() {
             <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
               Ready to Analyze Your Tyre Data?
             </h2>
-            <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
+            <p className="text-xl text-[#FFF7DD] mb-8 max-w-2xl mx-auto">
               Start converting your PDF reports to Excel or run AI predictions today
             </p>
             <Button asChild size="lg" variant="secondary" className="text-lg px-8 py-6">

@@ -18,11 +18,11 @@ export function Header() {
       animate={{ y: 0 }}
       transition={{ duration: 0.5 }}
     >
-      <div className="container mx-auto px-4 py-4">
+      <div className="container mx-auto px-2 py-2">
         <div className="flex items-center justify-between">
           <Link to="/" className="flex items-center space-x-2">
-            <div className="bg-blue-600 p-2 rounded-lg">
-            <img src="/jk-tyre-logo-header.webp" alt="JK Tyre logo" className="h-8 w-auto md:h-10 object-contain" />  
+            <div className="bg-[#FCC61D] p-2 rounded-lg">
+            <img src="/jk-tyre-logo-header.webp" alt="JK Tyre logo" className="h-7 w-auto md:h-8 object-contain" />
             </div>
             <span className="text-xl font-bold text-gray-900">
               Tyre Data Analyzer
@@ -34,7 +34,7 @@ export function Header() {
               <Link
                 key={item.path}
                 to={item.path}
-                className={`text-sm font-medium transition-colors hover:text-blue-600 ${
+                className={`text-lg font-medium transition-colors hover:text-blue-600 ${
                   location.pathname === item.path
                     ? 'text-blue-600'
                     : 'text-gray-600'
