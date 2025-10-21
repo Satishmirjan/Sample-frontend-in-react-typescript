@@ -3,7 +3,7 @@ import { Header } from './components/Header'
 import { Footer } from './components/Footer'
 import { LandingPage } from './pages/LandingPage'
 import { ConvertPage } from './pages/ConvertPage'
-// import { PredictionPage } from './pages/PredictionPage'
+ import { PredictionPage } from './pages/PredictionPage'
 
 function AppContent() {
   const location = useLocation()
@@ -16,7 +16,7 @@ function AppContent() {
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/convert" element={<ConvertPage />} />
-          {/* <Route path="/prediction" element={<PredictionPage />} /> */}
+          <Route path="/prediction" element={<PredictionPage />} />
         </Routes>
       </main>
 

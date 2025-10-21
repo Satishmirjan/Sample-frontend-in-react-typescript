@@ -19,15 +19,30 @@ export function ConvertPage() {
   const [conversionApproach, setConversionApproach] = useState<string>('')
   const [destinationPath, setDestinationPath] = useState<string>('downloads/')
   const [isConverting, setIsConverting] = useState(false)
-  const [results, setResults] = useState<ConversionResult[]>([])
+  const [result, setResult] = useState<ConversionResult | null>(null)
   const [error, setError] = useState<string>('')
+
+  const [fileContents, setFileContents] = useState<{ name: string; content: string }[]>([])
+
+  // MOCK EXCEL PREVIEW
+  const mockExcelPreview = [
+    { name: 'Rahul', email: 'rahul@gmail.com', marks: 87 },
+    { name: 'Priya', email: 'priya@gmail.com', marks: 92 }
+  ]
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files ? Array.from(event.target.files) : []
     if (files.length > 0) {
       setSelectedFiles(files)
+      setShowFileList(false)
       setError('')
-      setResults([])
+      setResult(null)
+
+      const mockContents = files.map((file) => ({
+        name: file.name,
+        content: `Preview of ${file.name}\n\nLorem ipsum dolor sit amet, consectetur adipiscing elit. This simulates file content.`
+      }))
+      setFileContents(mockContents)
     }
   }
 
@@ -36,113 +51,44 @@ export function ConvertPage() {
       setError('Please select at least one file and conversion approach')
       return
     }
-
     setIsConverting(true)
-    setError('')
-
-    try {
-      const formData = new FormData()
-      selectedFiles.forEach((file) => formData.append('files', file))
-      formData.append('approach', conversionApproach)
-      formData.append('destination', destinationPath)
-
-      const response = await fetch('http://localhost:5000/api/convert', {
-        method: 'POST',
-        body: formData,
+    setTimeout(() => {
+      setResult({
+        filename: 'merged_result.xlsx',
+        filepath: destinationPath + 'merged_result.xlsx',
+        downloadUrl: '#'
       })
-
-      if (!response.ok) throw new Error('Conversion failed')
-
-      const data = await response.json()
-
-      setResults(
-        Array.isArray(data)
-          ? data.map((d) => ({
-              filename: d.filename || 'converted_file.xlsx',
-              filepath: d.filepath || '/output/converted_file.xlsx',
-              downloadUrl: d.download_url || '#',
-            }))
-          : [
-              {
-                filename: data.filename || 'converted_file.xlsx',
-                filepath: data.filepath || '/output/converted_file.xlsx',
-                downloadUrl: data.download_url || '#',
-              },
-            ]
-      )
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Conversion failed')
-    } finally {
       setIsConverting(false)
-    }
-  }
-
-  const handleDownloadAll = () => {
-    results.forEach((res) => {
-      if (res.downloadUrl) {
-        const link = document.createElement('a')
-        link.href = res.downloadUrl
-        link.download = res.filename
-        document.body.appendChild(link)
-        link.click()
-        document.body.removeChild(link)
-      }
-    })
+    }, 1500)
   }
 
   return (
     <section className="min-h-[calc(100vh-64px)] bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col">
-      {/* Header Section */}
       <div className="px-6 pt-4 pb-2">
         <h1 className="text-sm md:text-base font-semibold text-gray-700 tracking-wide uppercase">
           File Conversion Tool
         </h1>
       </div>
 
-      {/* Horizontal Controls */}
       <div className="relative flex flex-wrap items-center gap-4 px-6 pb-4">
-        {/* File Upload */}
         <div className="flex items-center gap-2 relative">
-          <Input
-            type="file"
-            accept=".pdf,.docx,.csv"
-            multiple
-            onChange={handleFileSelect}
-            id="file-upload"
-            className="hidden"
-          />
-          <label
-            htmlFor="file-upload"
-            className="cursor-pointer flex items-center gap-2 px-3 py-2 bg-white border border-gray-300 rounded-lg shadow-sm hover:border-blue-400 transition"
-          >
+          <Input type="file" accept=".pdf,.docx,.csv" multiple onChange={handleFileSelect} id="file-upload" className="hidden" />
+          <label htmlFor="file-upload" className="cursor-pointer flex items-center gap-2 px-3 py-2 bg-white border border-gray-300 rounded-lg shadow-sm hover:border-blue-400 transition">
             <Upload className="h-4 w-4 text-gray-600" />
             <span className="text-sm text-gray-700">Select Files</span>
           </label>
 
           {selectedFiles.length > 0 && (
-            <button
-              onClick={() => setShowFileList((prev) => !prev)}
-              className="text-sm text-green-600 underline cursor-pointer"
-            >
-              {selectedFiles.length} file{selectedFiles.length > 1 ? 's' : ''} selected
+            <button onClick={() => setShowFileList((prev) => !prev)} className="text-sm text-green-600 underline cursor-pointer">
+              {selectedFiles.length} files selected
             </button>
           )}
 
-          {/* Dropdown showing file names */}
-          {showFileList && selectedFiles.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: -5 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="absolute top-12 left-0 bg-white border border-gray-200 shadow-lg rounded-md w-64 max-h-48 overflow-y-auto z-10"
-            >
-              <div className="flex justify-between items-center p-2 border-b border-gray-100">
+          {showFileList && (
+            <motion.div className="absolute top-12 left-0 bg-white border shadow rounded-md w-64 max-h-48 overflow-y-auto z-10">
+              <div className="flex justify-between items-center p-2 border-b">
                 <span className="text-sm font-medium text-gray-700">Selected Files</span>
-                <button
-                  onClick={() => setShowFileList(false)}
-                  className="text-gray-500 hover:text-gray-700"
-                >
-                  <X className="h-4 w-4" />
-                </button>
+                <button onClick={() => setShowFileList(false)}><X className="h-4 w-4" /></button>
               </div>
               <ul className="p-2 text-sm text-gray-700 space-y-1">
                 {selectedFiles.map((file, index) => (
@@ -155,13 +101,10 @@ export function ConvertPage() {
           )}
         </div>
 
-        {/* Conversion Approach */}
         <div className="flex items-center gap-2">
           <span className="text-sm text-gray-700">Method:</span>
           <Select value={conversionApproach} onValueChange={setConversionApproach}>
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder="Choose method" />
-            </SelectTrigger>
+            <SelectTrigger className="w-48"><SelectValue placeholder="Choose method" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="text-extraction">Text Extraction</SelectItem>
               <SelectItem value="table-parsing">Table Parsing</SelectItem>
@@ -170,102 +113,78 @@ export function ConvertPage() {
           </Select>
         </div>
 
-        {/* Destination Path */}
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-700">Destination:</span>
-          <div className="flex items-center bg-white border border-gray-300 rounded-lg shadow-sm px-2">
-            <FolderOpen className="h-4 w-4 text-gray-500 mr-1" />
-            <Input
-              type="text"
-              value={destinationPath}
-              onChange={(e) => setDestinationPath(e.target.value)}
-              placeholder="downloads/"
-              className="border-none focus:ring-0 focus:outline-none text-sm"
-            />
-          </div>
-        </div>
-
-        {/* Convert Button */}
-        <Button
-          onClick={handleConvert}
-          disabled={selectedFiles.length === 0 || !conversionApproach || isConverting}
-          className="ml-auto"
-        >
-          {isConverting ? (
-            <>
-              <Loading className="mr-2 h-4 w-4 animate-spin" />
-              Converting...
-            </>
-          ) : (
-            'Convert to Excel'
-          )}
+        <Button onClick={handleConvert} disabled={!conversionApproach || isConverting} className="ml-auto">
+          {isConverting ? <Loading className="mr-2 h-4 w-4 animate-spin" /> : null}
+          {isConverting ? 'Converting...' : 'Convert to Excel'}
         </Button>
       </div>
 
-      {/* Result Section */}
       <div className="flex-1 px-6 pb-8">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="h-full"
-        >
-          <Card className="flex-1 flex flex-col justify-center shadow-md">
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-base font-medium">
-                <Download className="h-5 w-5" />
-                Conversion Result
-              </CardTitle>
-            </CardHeader>
+        <motion.div className="grid md:grid-cols-2 gap-6 h-full">
 
-            <CardContent className="flex-1 flex items-center justify-center">
-              {isConverting ? (
-                <div className="text-center py-10">
-                  <Loading size="lg" className="mx-auto mb-4 animate-spin" />
-                  <p className="text-gray-600">Processing your files...</p>
+          {/* LEFT SIDE PREVIEW — SAME */}
+          <Card className="shadow-md h-[70vh] overflow-y-auto">
+            <CardHeader><CardTitle><FileText /> File Contents</CardTitle></CardHeader>
+            <CardContent className="p-4">
+              {fileContents.length === 0 ? (
+                <p className="text-gray-400 text-sm italic text-center mt-20">File content will appear here after selection.</p>
+              ) : fileContents.map((file) => (
+                <div key={file.name} className="mb-4">
+                  <h3 className="font-semibold">{file.name}</h3>
+                  <pre className="bg-gray-50 p-2 rounded-md text-xs">{file.content}</pre>
                 </div>
-              ) : results.length > 0 ? (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.5 }}
-                  className="w-full max-w-xl mx-auto space-y-5"
-                >
-                  <div className="p-5 bg-green-50 border border-green-200 rounded-md shadow-sm">
-                    <h3 className="font-semibold text-green-800 mb-3">
-                      Conversion Successful!
-                    </h3>
-                    <ul className="space-y-2 text-sm">
-                      {results.map((res, index) => (
-                        <li key={index} className="flex justify-between">
-                          <span>{res.filename}</span>
-                          <a
-                            href={res.downloadUrl}
-                            download={res.filename}
-                            className="text-blue-600 hover:underline"
-                          >
-                            Download
-                          </a>
-                        </li>
-                      ))}
-                    </ul>
-                    <p className="mt-3 text-xs text-gray-600">
-                      Saved to: <strong>{destinationPath}</strong>
-                    </p>
-                  </div>
-                  <Button onClick={handleDownloadAll} className="w-full" size="lg">
-                    <Download className="h-4 w-4 mr-2" />
-                    Download All Files
-                  </Button>
-                </motion.div>
-              ) : (
-                <div className="text-center py-10 text-gray-500">
-                  <FileText className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                  <p>Conversion results will appear here</p>
-                </div>
-              )}
+              ))}
             </CardContent>
           </Card>
+
+          {/* ✅ RIGHT SIDE WITH TABLE + DOWNLOAD BELOW */}
+          <Card className="shadow-md h-[70vh] flex flex-col">
+            <CardHeader><CardTitle><Download /> Conversion Result</CardTitle></CardHeader>
+            <CardContent className="p-4 flex-1 overflow-y-auto">
+
+              {isConverting ? (
+                <div className="text-center">
+                  <Loading size="lg" className="mx-auto mb-4 animate-spin" />
+                  <p>Processing your files...</p>
+                </div>
+              ) : result ? (
+                <>
+                  <p className="text-sm font-medium mb-2">Preview of Generated Excel:</p>
+                  <table className="w-full text-sm border">
+                    <thead>
+                      <tr className="border">
+                        <th className="p-2">Name</th>
+                        <th className="p-2">Email</th>
+                        <th className="p-2">Marks</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {mockExcelPreview.map((row, idx) => (
+                        <tr key={idx} className="border">
+                          <td className="p-2">{row.name}</td>
+                          <td className="p-2">{row.email}</td>
+                          <td className="p-2">{row.marks}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </>
+              ) : (
+                <p className="text-gray-400 text-sm italic text-center mt-20">Converted result will appear here.</p>
+              )}
+
+            </CardContent>
+
+            {/* ✅ DOWNLOAD BUTTON FIXED BOTTOM */}
+            {result && (
+              <div className="p-4 border-t text-center">
+                <Button size="lg">
+                  <Download className="h-4 w-4 mr-2" /> Download Excel
+                </Button>
+              </div>
+            )}
+          </Card>
+
         </motion.div>
       </div>
     </section>
