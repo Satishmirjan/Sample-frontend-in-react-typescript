@@ -38,13 +38,13 @@ export function LandingPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
           >
-            <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6">
+            <h1 className="text-5xl md:text-6xl font-bold text-gray-900 dark:text-white mb-6">
               Tyre Data{' '}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FCC61D] to-[#000000]">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FCC61D] to-[#000000] dark:from-[#FCC61D] dark:to-[#FFF7DD]">
                 Analyzer
               </span>
             </h1>
-            <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
+            <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-2xl mx-auto">
               A smart tool to extract key experiment data (like temperature, weight, and day readings) 
               from reports and export them to Excel or predict results with AI.
             </p>
