@@ -1,15 +1,6 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import {
-  Brain,
-  Upload,
-  Download,
-  Thermometer,
-  Weight,
-  Calendar,
-  TrendingUp,
-  Settings,
-} from 'lucide-react'
+import { Brain, Upload, Download, TrendingUp } from 'lucide-react'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Input } from '../components/ui/input'
@@ -24,40 +15,56 @@ interface PredictionResult {
   reportUrl?: string
 }
 
-export function PredictionPage() {
-  // Input selection modes
-  const [mode, setMode] = useState<'upload' | 'manual' | 'existing'>('upload')
+// 30 tire-related parameters
+const ALL_TIRE_PARAMETERS = [
+  { key: 'tirePressure', label: 'Tire Pressure', value: 32, min: 20, max: 50, step: 1, unit: 'PSI' },
+  { key: 'treadDepth', label: 'Tread Depth', value: 8, min: 0, max: 12, step: 0.5, unit: 'mm' },
+  { key: 'loadIndex', label: 'Load Index', value: 91, min: 50, max: 120, step: 1, unit: '' },
+  { key: 'speedRating', label: 'Speed Rating', value: 120, min: 80, max: 250, step: 5, unit: 'km/h' },
+  { key: 'tireWidth', label: 'Tire Width', value: 205, min: 150, max: 300, step: 5, unit: 'mm' },
+  { key: 'aspectRatio', label: 'Aspect Ratio', value: 55, min: 30, max: 80, step: 1, unit: '%' },
+  { key: 'rimDiameter', label: 'Rim Diameter', value: 16, min: 12, max: 22, step: 1, unit: 'inch' },
+  { key: 'tireAge', label: 'Tire Age', value: 2, min: 0, max: 10, step: 1, unit: 'years' },
+  { key: 'sidewallHeight', label: 'Sidewall Height', value: 114, min: 80, max: 200, step: 1, unit: 'mm' },
+  { key: 'rollingResistance', label: 'Rolling Resistance', value: 0.009, min: 0.005, max: 0.02, step: 0.001, unit: '' },
+  { key: 'temperatureIndex', label: 'Temperature Index', value: 75, min: 50, max: 100, step: 1, unit: '°C' },
+  { key: 'inflationType', label: 'Inflation Type', value: 32, min: 20, max: 50, step: 1, unit: 'PSI' },
+  { key: 'tractionRating', label: 'Traction Rating', value: 7, min: 1, max: 10, step: 1, unit: '' },
+  { key: 'corneringStiffness', label: 'Cornering Stiffness', value: 90, min: 50, max: 150, step: 1, unit: '' },
+  { key: 'rideComfort', label: 'Ride Comfort', value: 7, min: 1, max: 10, step: 1, unit: '' },
+  { key: 'wetGrip', label: 'Wet Grip', value: 7, min: 1, max: 10, step: 1, unit: '' },
+  { key: 'noiseLevel', label: 'Noise Level', value: 72, min: 50, max: 100, step: 1, unit: 'dB' },
+  { key: 'tireType', label: 'Tire Type', value: 'Radial', min: 0, max: 0, step: 0, unit: '' },
+  { key: 'materialHardness', label: 'Material Hardness', value: 65, min: 40, max: 100, step: 1, unit: 'Shore A' },
+  { key: 'camberSensitivity', label: 'Camber Sensitivity', value: 3, min: 0, max: 10, step: 0.1, unit: 'deg' },
+  { key: 'tireWearRate', label: 'Tire Wear Rate', value: 0.01, min: 0, max: 0.1, step: 0.001, unit: '%' },
+  { key: 'pressureVariation', label: 'Pressure Variation', value: 1, min: 0, max: 5, step: 0.1, unit: 'PSI' },
+  { key: 'loadDistribution', label: 'Load Distribution', value: 50, min: 0, max: 100, step: 1, unit: '%' },
+  { key: 'rollingSpeed', label: 'Rolling Speed', value: 90, min: 20, max: 150, step: 1, unit: 'km/h' },
+  { key: 'temperatureGradient', label: 'Temperature Gradient', value: 5, min: 0, max: 20, step: 1, unit: '°C' },
+  { key: 'sidewallFlexibility', label: 'Sidewall Flexibility', value: 8, min: 1, max: 10, step: 1, unit: '' },
+  { key: 'corneringLoad', label: 'Cornering Load', value: 800, min: 100, max: 2000, step: 10, unit: 'kg' },
+  { key: 'tractionCoefficient', label: 'Traction Coefficient', value: 0.85, min: 0, max: 1, step: 0.01, unit: '' },
+  { key: 'inflationMethod', label: 'Inflation Method', value: 'Standard', min: 0, max: 0, step: 0, unit: '' },
+  { key: 'maximumLoad', label: 'Maximum Load', value: 615, min: 100, max: 1000, step: 10, unit: 'kg' },
+]
 
-  // File & manual input states
+export function PredictionPage() {
+  const [mode, setMode] = useState<'upload' | 'manual' | 'existing'>('upload')
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [existingFile, setExistingFile] = useState<string | null>(null)
-  const [inputData, setInputData] = useState({
-    temperature: '',
-    weight: '',
-    pressure: '',
-    dayOfWeek: '',
-    humidity: '',
-  })
-
-  // Filter values (sliders)
-  const [filterValues, setFilterValues] = useState({
-    temperature: 25,
-    weight: 1500,
-    pressure: 32,
-    dayOfWeek: 4,
-    humidity: 60,
-  })
+  const [inputData, setInputData] = useState<any>({})
+  const [filterValues, setFilterValues] = useState<any>(
+    ALL_TIRE_PARAMETERS.reduce((acc, p) => ({ ...acc, [p.key]: p.value }), {})
+  )
+  const [selectedParams, setSelectedParams] = useState<string[]>(['tirePressure', 'treadDepth', 'loadIndex'])
   const [showFilters, setShowFilters] = useState(false)
-
-  // Process state & result
   const [isPredicting, setIsPredicting] = useState(false)
   const [result, setResult] = useState<PredictionResult | null>(null)
   const [error, setError] = useState<string>('')
 
-  // Mock existing files list (simulate option C)
   const mockExistingFiles = ['previous_run_2025-10-20.csv', 'sample_dataset.xlsx']
 
-  // ----- Handlers -----
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] ?? null
     setSelectedFile(file)
@@ -66,19 +73,24 @@ export function PredictionPage() {
   }
 
   const handleInputChange = (field: string, value: string) => {
-    setInputData((p) => ({ ...p, [field]: value }))
+    setInputData((p: any) => ({ ...p, [field]: value }))
     setError('')
     setResult(null)
   }
 
-  const handleFilterChange = (key: string, value: number) => {
-    setFilterValues((p) => ({ ...p, [key]: value }))
+  const handleFilterChange = (key: string, value: number | string) => {
+    setFilterValues((p: any) => ({ ...p, [key]: value }))
     setError('')
     setResult(null)
+  }
+
+  const handleParamToggle = (key: string) => {
+    setSelectedParams((prev) =>
+      prev.includes(key) ? prev.filter((p) => p !== key) : [...prev, key]
+    )
   }
 
   const handlePredict = async () => {
-    // Validation
     if (mode === 'upload' && !selectedFile) {
       setError('Please upload a dataset file to predict.')
       return
@@ -87,24 +99,18 @@ export function PredictionPage() {
       setError('Please select an existing file.')
       return
     }
-    if (mode === 'manual' && (!inputData.temperature || !inputData.weight)) {
-      setError('Please enter temperature and weight for manual prediction.')
-      return
-    }
 
     setIsPredicting(true)
     setError('')
     setResult(null)
 
-    // Simulate API / processing delay and build a mock raw report text
     setTimeout(() => {
-      // Build lines based on input type
       const sourceDesc =
         mode === 'upload'
           ? `Uploaded file: ${selectedFile?.name}`
           : mode === 'existing'
           ? `Existing file: ${existingFile}`
-          : `Manual input: temp=${inputData.temperature}, weight=${inputData.weight}`
+          : `Manual input: ${JSON.stringify(inputData)}`
 
       const lines = [
         `Prediction Report`,
@@ -112,10 +118,7 @@ export function PredictionPage() {
         `Generated: ${new Date().toLocaleString()}`,
         ``,
         `--- Summary ---`,
-        `Predicted Temperature: ${(
-          Math.random() * 10 +
-          (inputData.temperature ? Number(inputData.temperature) : 20)
-        ).toFixed(2)} °C`,
+        `Predicted Temperature: ${(Math.random() * 10 + (inputData.tirePressure || 20)).toFixed(2)} °C`,
         `Confidence: ${(70 + Math.random() * 25).toFixed(2)}%`,
         ``,
         `--- Recommendations ---`,
@@ -124,21 +127,14 @@ export function PredictionPage() {
         `• Re-run analysis after next dataset.`,
         ``,
         `--- Raw Parameters ---`,
-        `Temperature (input): ${inputData.temperature || filterValues.temperature}`,
-        `Weight (input): ${inputData.weight || filterValues.weight}`,
-        `Pressure: ${inputData.pressure || filterValues.pressure}`,
-        `DayOfWeek: ${inputData.dayOfWeek || filterValues.dayOfWeek}`,
-        `Humidity: ${inputData.humidity || filterValues.humidity}`,
-        ``,
-        `--- Notes ---`,
-        `This is a mock preview. Replace with backend report text when connected.`,
+        ...ALL_TIRE_PARAMETERS.map(p => `${p.label}: ${filterValues[p.key]}`),
       ]
 
       const rawReportText = lines.join('\n')
       setResult({
         rawReportText,
-        predictedTemperature: parseFloat(lines[6].split(':')[1]) || undefined,
-        confidence: parseFloat(lines[7].split(':')[1]) || undefined,
+        predictedTemperature: parseFloat(lines[5].split(':')[1]) || undefined,
+        confidence: parseFloat(lines[6].split(':')[1]) || undefined,
         recommendations: [
           'Monitor temperature every 6 hours',
           'Check weight trends weekly',
@@ -146,10 +142,9 @@ export function PredictionPage() {
         ],
       })
       setIsPredicting(false)
-    }, 1100)
+    }, 1200)
   }
 
-  // Download the raw report as a .txt (or change to xmldata/xlsx when backend available)
   const handleDownloadReport = () => {
     if (!result) return
     const blob = new Blob([result.rawReportText], { type: 'text/plain;charset=utf-8' })
@@ -163,36 +158,31 @@ export function PredictionPage() {
     URL.revokeObjectURL(url)
   }
 
-  // Quick small UI helper for small text and consistent card sizes
   const smallText = 'text-sm'
 
   return (
-    <section className="min-h-[calc(100vh-64px)] bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col">
-      {/* Title */}
+    <section className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col">
       <div className="px-6 pt-4 pb-2">
         <h1 className="text-sm font-semibold text-gray-700 tracking-wide uppercase">Prediction Dashboard</h1>
       </div>
 
-      {/* Controls and panels */}
-      <div className="flex-1 px-6 pb-8">
+      <div className="flex-1 px-6 pb-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="grid md:grid-cols-[1fr_1.7fr] gap-8 h-full"
+          className="grid grid-cols-1 md:grid-cols-2 gap-8 h-[calc(100vh-100px)]"
         >
-          {/* LEFT: Input Controls */}
-          <Card className="h-[70vh] shadow-md overflow-y-auto">
+          {/* LEFT SIDE */}
+          <Card className="shadow-lg h-full flex flex-col">
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center gap-2 text-base font-medium">
                 <Brain className="h-5 w-5" />
-                Input Data
+                Input & Filters
               </CardTitle>
             </CardHeader>
-
-            <CardContent className={`space-y-4 p-4 ${smallText}`}>
-              {/* Mode selector */}
-              <div className="flex gap-2">
+            <CardContent className={`flex-1 overflow-y-auto p-4 ${smallText}`}>
+              <div className="flex gap-2 mb-4">
                 <Button variant={mode === 'upload' ? 'default' : 'outline'} className="flex-1" onClick={() => setMode('upload')}>
                   Upload Dataset
                 </Button>
@@ -204,126 +194,91 @@ export function PredictionPage() {
                 </Button>
               </div>
 
-              {/* Upload */}
               {mode === 'upload' && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Upload Dataset File</label>
                   <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-blue-400 transition-colors">
-                    <Input
-                      id="dataset-upload"
-                      type="file"
-                      accept=".csv,.xlsx,.json"
-                      onChange={handleFileSelect}
-                      className="hidden"
-                    />
+                    <Input id="dataset-upload" type="file" accept=".csv,.xlsx,.json" onChange={handleFileSelect} className="hidden" />
                     <label htmlFor="dataset-upload" className="cursor-pointer flex flex-col items-center">
                       <Upload className="h-10 w-10 text-gray-400 mb-2" />
                       <span className="text-sm text-gray-600">Click to upload dataset</span>
-                      <span className="text-xs text-gray-500 mt-1">CSV, XLSX, JSON accepted</span>
                     </label>
                   </div>
                   {selectedFile && <p className="text-sm text-green-600 mt-2">Selected: {selectedFile.name}</p>}
                 </div>
               )}
 
-              {/* Existing */}
-              {mode === 'existing' && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Choose existing file</label>
-                  <div className="space-y-2">
-                    {mockExistingFiles.map((f) => (
-                      <div key={f} className={`p-2 rounded cursor-pointer hover:bg-gray-100 flex items-center justify-between ${existingFile === f ? 'bg-blue-50 border border-blue-100' : 'border border-transparent'}`} onClick={() => { setExistingFile(f); setSelectedFile(null); }}>
-                        <span className="text-sm">{f}</span>
-                        {existingFile === f && <span className="text-xs text-blue-600">Selected</span>}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Manual */}
               {mode === 'manual' && (
                 <div className="grid grid-cols-1 gap-3">
-                  <div className="flex items-center gap-3">
-                    <Thermometer className="h-5 w-5 text-blue-600" />
-                    <Input type="number" placeholder="Temperature (°C)" value={inputData.temperature} onChange={(e) => handleInputChange('temperature', e.target.value)} />
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Weight className="h-5 w-5 text-blue-600" />
-                    <Input type="number" placeholder="Weight (kg)" value={inputData.weight} onChange={(e) => handleInputChange('weight', e.target.value)} />
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <TrendingUp className="h-5 w-5 text-blue-600" />
-                    <Input type="number" placeholder="Pressure (PSI)" value={inputData.pressure} onChange={(e) => handleInputChange('pressure', e.target.value)} />
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Calendar className="h-5 w-5 text-blue-600" />
-                    <Input type="number" placeholder="Day of Week (1-7)" value={inputData.dayOfWeek} onChange={(e) => handleInputChange('dayOfWeek', e.target.value)} />
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Brain className="h-5 w-5 text-blue-600" />
-                    <Input type="number" placeholder="Humidity (%)" value={inputData.humidity} onChange={(e) => handleInputChange('humidity', e.target.value)} />
-                  </div>
+                  {ALL_TIRE_PARAMETERS.slice(0, 5).map(p => (
+                    <Input key={p.key} type="text" placeholder={p.label} value={inputData[p.key] || ''} onChange={e => handleInputChange(p.key, e.target.value)} />
+                  ))}
                 </div>
               )}
 
-              {/* Filters toggle and panel */}
-              <div>
-                <div className="flex items-center justify-between">
-                  <div className="text-sm text-gray-700 font-medium">Parameter Filters</div>
-                  <Button variant="outline" size="sm" onClick={() => setShowFilters(!showFilters)}>{showFilters ? 'Hide' : 'Show'}</Button>
+              {mode === 'existing' && (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">Select Existing File</label>
+                  <select
+                    className="border rounded-md w-full px-3 py-2"
+                    value={existingFile || ''}
+                    onChange={(e) => setExistingFile(e.target.value)}
+                  >
+                    <option value="">-- Choose File --</option>
+                    {mockExistingFiles.map((f) => (
+                      <option key={f} value={f}>{f}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div className="mt-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="text-sm text-gray-700 font-medium">Select Parameters</div>
+                  <Button variant="outline" size="sm" onClick={() => setShowFilters(!showFilters)}>
+                    {showFilters ? 'Hide' : 'Show'}
+                  </Button>
                 </div>
 
-                {showFilters ? (
-                  <div className="mt-3">
-                    <FilterPanel
-                      filters={[
-                        { key: 'temperature', label: 'Temperature', value: filterValues.temperature, min: -10, max: 50, step: 1, unit: '°C', icon: <Thermometer className="h-4 w-4"/> },
-                        { key: 'weight', label: 'Weight', value: filterValues.weight, min: 500, max: 3000, step: 50, unit: 'kg', icon: <Weight className="h-4 w-4"/> },
-                        { key: 'pressure', label: 'Pressure', value: filterValues.pressure, min: 20, max: 50, step: 1, unit: 'PSI', icon: <TrendingUp className="h-4 w-4"/> },
-                        { key: 'dayOfWeek', label: 'Day of Week', value: filterValues.dayOfWeek, min: 1, max: 7, step: 1, unit: '', icon: <Calendar className="h-4 w-4"/> },
-                        { key: 'humidity', label: 'Humidity', value: filterValues.humidity, min: 0, max: 100, step: 5, unit: '%', icon: <Brain className="h-4 w-4"/> },
-                      ]}
-                      onChange={(k, v) => handleFilterChange(k, v)}
-                    />
+                {showFilters && (
+                  <div className="border p-2 rounded max-h-64 overflow-y-auto mb-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      {ALL_TIRE_PARAMETERS.map(p => (
+                        <label key={p.key} className="flex items-center gap-2">
+                          <input type="checkbox" checked={selectedParams.includes(p.key)} onChange={() => handleParamToggle(p.key)} />
+                          <span className="text-xs">{p.label}</span>
+                        </label>
+                      ))}
+                    </div>
                   </div>
-                ) : (
-                  <p className="mt-2 text-xs text-gray-500">Use filters for quick parameter adjustments (used if manual fields are empty).</p>
                 )}
+
+                <div className="grid grid-cols-2 gap-4">
+  {ALL_TIRE_PARAMETERS.filter(p => selectedParams.includes(p.key)).map(p => (
+    <FilterPanel
+      key={p.key}
+      filters={[{ ...p, value: filterValues[p.key] }]}
+      onChange={handleFilterChange}
+    />
+  ))}
+</div>
               </div>
 
-              {/* Predict Button & errors */}
-              <div>
-                <Button
-                  onClick={handlePredict}
-                  disabled={isPredicting}
-                  className="w-full"
-                  size="lg"
-                >
-                  {isPredicting ? (
-                    <>
-                      <Loading className="mr-2" />
-                      Analyzing...
-                    </>
-                  ) : (
-                    'Predict Results'
-                  )}
-                </Button>
-
-                {error && <div className="mt-3 p-2 bg-red-50 border border-red-200 rounded text-sm text-red-600">{error}</div>}
-              </div>
+              <Button onClick={handlePredict} disabled={isPredicting} className="w-full mt-4" size="lg">
+                {isPredicting ? <><Loading className="mr-2" />Analyzing...</> : 'Predict Results'}
+              </Button>
+              {error && <div className="mt-3 p-2 bg-red-50 border border-red-200 rounded text-sm text-red-600">{error}</div>}
             </CardContent>
           </Card>
 
-          {/* RIGHT: Prediction Result (raw text preview) */}
-          <Card className="h-[70vh] shadow-md flex flex-col">
+          {/* RIGHT SIDE */}
+          <Card className="shadow-lg h-full flex flex-col">
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center gap-2 text-base font-medium">
                 <TrendingUp className="h-5 w-5" />
                 Prediction Results
               </CardTitle>
             </CardHeader>
-
             <CardContent className="flex-1 p-4 overflow-y-auto text-sm">
               {isPredicting ? (
                 <div className="text-center py-10">
@@ -331,9 +286,7 @@ export function PredictionPage() {
                   <p className="text-gray-600">Running AI prediction analysis...</p>
                 </div>
               ) : result ? (
-                <div className="whitespace-pre-wrap font-mono text-xs text-gray-800">
-                  {result.rawReportText}
-                </div>
+                <div className="whitespace-pre-wrap font-mono text-xs text-gray-800">{result.rawReportText}</div>
               ) : (
                 <div className="text-center py-10 text-gray-500">
                   <Brain className="h-12 w-12 mx-auto mb-4 text-gray-300" />
@@ -341,28 +294,18 @@ export function PredictionPage() {
                 </div>
               )}
             </CardContent>
-
-            {/* Download button fixed at bottom */}
-            <div className="p-4 border-t">
-              <div className="flex gap-2">
-                <Button onClick={handleDownloadReport} disabled={!result} className="flex-1" size="lg">
-                  <Download className="h-4 w-4 mr-2" />
-                  Download Report
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    // quick copy-to-clipboard if needed
-                    if (result) {
-                      navigator.clipboard.writeText(result.rawReportText).then(() => {
-                        // small feedback could be added
-                      })
-                    }
-                  }}
-                >
-                  Copy
-                </Button>
-              </div>
+            <div className="p-4 border-t flex gap-2">
+              <Button onClick={handleDownloadReport} disabled={!result} className="flex-1" size="lg">
+                <Download className="h-4 w-4 mr-2" /> Download Report
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  if (result) navigator.clipboard.writeText(result.rawReportText)
+                }}
+              >
+                Copy
+              </Button>
             </div>
           </Card>
         </motion.div>
