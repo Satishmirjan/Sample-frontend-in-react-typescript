@@ -1,11 +1,6 @@
 import { useState } from 'react'
-import { motion } from 'framer-motion'
-import { Brain, Upload, Download, TrendingUp } from 'lucide-react'
-import { Button } from '../components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
-import { Input } from '../components/ui/input'
-import { Loading } from '../components/ui/loading'
-import { FilterPanel } from '../components/ui/filter'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Brain, Upload, Download, TrendingUp, Play, SkipForward, RotateCcw, ChevronLeft, ChevronRight } from 'lucide-react'
 
 interface PredictionResult {
   rawReportText: string
@@ -15,7 +10,13 @@ interface PredictionResult {
   reportUrl?: string
 }
 
-// 30 tire-related parameters
+interface Iteration {
+  id: number
+  timestamp: string
+  results: PredictionResult
+  parameters: any
+}
+
 const ALL_TIRE_PARAMETERS = [
   { key: 'tirePressure', label: 'Tire Pressure', value: 32, min: 20, max: 50, step: 1, unit: 'PSI' },
   { key: 'treadDepth', label: 'Tread Depth', value: 8, min: 0, max: 12, step: 0.5, unit: 'mm' },
@@ -37,17 +38,55 @@ const ALL_TIRE_PARAMETERS = [
   { key: 'tireType', label: 'Tire Type', value: 'Radial', min: 0, max: 0, step: 0, unit: '' },
   { key: 'materialHardness', label: 'Material Hardness', value: 65, min: 40, max: 100, step: 1, unit: 'Shore A' },
   { key: 'camberSensitivity', label: 'Camber Sensitivity', value: 3, min: 0, max: 10, step: 0.1, unit: 'deg' },
-  { key: 'tireWearRate', label: 'Tire Wear Rate', value: 0.01, min: 0, max: 0.1, step: 0.001, unit: '%' },
-  { key: 'pressureVariation', label: 'Pressure Variation', value: 1, min: 0, max: 5, step: 0.1, unit: 'PSI' },
-  { key: 'loadDistribution', label: 'Load Distribution', value: 50, min: 0, max: 100, step: 1, unit: '%' },
-  { key: 'rollingSpeed', label: 'Rolling Speed', value: 90, min: 20, max: 150, step: 1, unit: 'km/h' },
-  { key: 'temperatureGradient', label: 'Temperature Gradient', value: 5, min: 0, max: 20, step: 1, unit: '°C' },
-  { key: 'sidewallFlexibility', label: 'Sidewall Flexibility', value: 8, min: 1, max: 10, step: 1, unit: '' },
-  { key: 'corneringLoad', label: 'Cornering Load', value: 800, min: 100, max: 2000, step: 10, unit: 'kg' },
-  { key: 'tractionCoefficient', label: 'Traction Coefficient', value: 0.85, min: 0, max: 1, step: 0.01, unit: '' },
-  { key: 'inflationMethod', label: 'Inflation Method', value: 'Standard', min: 0, max: 0, step: 0, unit: '' },
-  { key: 'maximumLoad', label: 'Maximum Load', value: 615, min: 100, max: 1000, step: 10, unit: 'kg' },
 ]
+
+const Button = ({ children, onClick, disabled, variant = 'default', size = 'md', className = '' }: any) => {
+  const baseStyles = 'font-medium rounded-lg transition-all duration-200 flex items-center justify-center'
+  const variants = {
+    default: 'bg-yellow-400 text-gray-900 hover:bg-yellow-500 disabled:bg-gray-300 disabled:cursor-not-allowed',
+    outline: 'border-2 border-yellow-400 text-yellow-600 hover:bg-yellow-50 disabled:border-gray-300 disabled:text-gray-300',
+    ghost: 'text-gray-700 hover:bg-gray-100'
+  }
+  const sizes = {
+    sm: 'px-3 py-1.5 text-xs',
+    md: 'px-4 py-2 text-sm',
+    lg: 'px-6 py-3 text-base'
+  }
+  return (
+    <button onClick={onClick} disabled={disabled} className={`${baseStyles} ${variants[variant]} ${sizes[size]} ${className}`}>
+      {children}
+    </button>
+  )
+}
+
+const Card = ({ children, className = '' }: any) => (
+  <div className={`bg-white rounded-xl ${className}`}>{children}</div>
+)
+
+const Input = ({ type = 'text', placeholder, value, onChange, className = '' }: any) => (
+  <input type={type} placeholder={placeholder} value={value} onChange={onChange} className={`border border-gray-300 rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-500 ${className}`} />
+)
+
+const Loading = ({ size = 'md', className = '' }: any) => {
+  const sizes = { sm: 'h-4 w-4', md: 'h-6 w-6', lg: 'h-10 w-10' }
+  return <div className={`animate-spin rounded-full border-2 border-gray-300 border-t-blue-600 ${sizes[size]} ${className}`} />
+}
+
+const FilterPanel = ({ filters, onChange }: any) => (
+  <div className="space-y-2">
+    {filters.map((f: any) => (
+      <div key={f.key} className="space-y-1">
+        <label className="text-xs font-medium text-gray-700">{f.label}</label>
+        {typeof f.value === 'number' ? (
+          <input type="number" min={f.min} max={f.max} step={f.step} value={f.value} onChange={e => onChange(f.key, parseFloat(e.target.value))} className="border border-gray-300 rounded px-2 py-1 w-full text-xs" />
+        ) : (
+          <input type="text" value={f.value} onChange={e => onChange(f.key, e.target.value)} className="border border-gray-300 rounded px-2 py-1 w-full text-xs" />
+        )}
+        {f.unit && <span className="text-xs text-gray-500">{f.unit}</span>}
+      </div>
+    ))}
+  </div>
+)
 
 export function PredictionPage() {
   const [mode, setMode] = useState<'upload' | 'manual' | 'existing'>('upload')
@@ -60,39 +99,78 @@ export function PredictionPage() {
   const [selectedParams, setSelectedParams] = useState<string[]>(['tirePressure', 'treadDepth', 'loadIndex'])
   const [showFilters, setShowFilters] = useState(false)
   const [isPredicting, setIsPredicting] = useState(false)
-  const [result, setResult] = useState<PredictionResult | null>(null)
   const [error, setError] = useState<string>('')
+  
+  // Iteration state
+  const [iterations, setIterations] = useState<Iteration[]>([])
+  const [currentIterationIndex, setCurrentIterationIndex] = useState<number>(-1)
+  const [isIterating, setIsIterating] = useState(false)
 
   const mockExistingFiles = ['previous_run_2025-10-20.csv', 'sample_dataset.xlsx']
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] ?? null
-    setSelectedFile(file)
-    setError('')
-    setResult(null)
+  const generatePredictionResult = (iterationNum: number): PredictionResult => {
+    const baseTemp = 65 + (Math.random() * 15)
+    const variance = (Math.random() - 0.5) * 10
+    const temp = baseTemp + variance + (iterationNum * 0.5)
+    const confidence = 70 + Math.random() * 25
+    
+    const sourceDesc = mode === 'upload' ? `Uploaded file: ${selectedFile?.name}` : mode === 'existing' ? `Existing file: ${existingFile}` : `Manual input`
+
+    const lines = [
+      `========================================`,
+      `ITERATION ${iterationNum} - PREDICTION REPORT`,
+      `========================================`,
+      `Source: ${sourceDesc}`,
+      `Generated: ${new Date().toLocaleString()}`,
+      `Iteration: ${iterationNum}`,
+      ``,
+      `--- SUMMARY ---`,
+      `Predicted Temperature: ${temp.toFixed(2)} °C`,
+      `Confidence Score: ${confidence.toFixed(2)}%`,
+      `Variation from baseline: ${variance > 0 ? '+' : ''}${variance.toFixed(2)} °C`,
+      ``,
+      `--- KEY METRICS ---`,
+      `• Average Tire Pressure: ${(filterValues.tirePressure + Math.random() * 2).toFixed(1)} PSI`,
+      `• Tread Depth: ${(filterValues.treadDepth - iterationNum * 0.1).toFixed(1)} mm`,
+      `• Load Index: ${filterValues.loadIndex}`,
+      `• Temperature Index: ${filterValues.temperatureIndex || 75} °C`,
+      `• Rolling Resistance: ${(filterValues.rollingResistance || 0.009).toFixed(4)}`,
+      ``,
+      `--- RECOMMENDATIONS ---`,
+      `• Monitor temperature every ${6 + iterationNum} hours`,
+      `• ${confidence > 85 ? 'High confidence - maintain current parameters' : 'Consider adjusting tire pressure'}`,
+      `• Next iteration scheduled in ${Math.floor(Math.random() * 24 + 12)} hours`,
+      `• ${temp > 75 ? 'WARNING: Temperature approaching critical threshold' : 'Temperature within normal range'}`,
+      ``,
+      `--- ACTIVE PARAMETERS (${selectedParams.length}) ---`,
+      ...selectedParams.map(key => {
+        const param = ALL_TIRE_PARAMETERS.find(p => p.key === key)
+        return `${param?.label}: ${filterValues[key]} ${param?.unit || ''}`
+      }),
+      ``,
+      `--- ITERATION STATISTICS ---`,
+      `Total iterations completed: ${iterationNum}`,
+      `Success rate: ${(85 + Math.random() * 10).toFixed(1)}%`,
+      `Processing time: ${(0.8 + Math.random() * 0.4).toFixed(2)}s`,
+      `Model version: v2.${iterationNum}.0`,
+      `========================================`,
+    ]
+
+    return {
+      rawReportText: lines.join('\n'),
+      predictedTemperature: parseFloat(temp.toFixed(2)),
+      confidence: parseFloat(confidence.toFixed(2)),
+      recommendations: [
+        `Monitor temperature every ${6 + iterationNum} hours`,
+        confidence > 85 ? 'High confidence - maintain current parameters' : 'Consider adjusting tire pressure',
+        temp > 75 ? 'WARNING: Temperature approaching critical threshold' : 'Temperature within normal range'
+      ]
+    }
   }
 
-  const handleInputChange = (field: string, value: string) => {
-    setInputData((p: any) => ({ ...p, [field]: value }))
-    setError('')
-    setResult(null)
-  }
-
-  const handleFilterChange = (key: string, value: number | string) => {
-    setFilterValues((p: any) => ({ ...p, [key]: value }))
-    setError('')
-    setResult(null)
-  }
-
-  const handleParamToggle = (key: string) => {
-    setSelectedParams((prev) =>
-      prev.includes(key) ? prev.filter((p) => p !== key) : [...prev, key]
-    )
-  }
-
-  const handlePredict = async () => {
+  const handleStartIterations = async () => {
     if (mode === 'upload' && !selectedFile) {
-      setError('Please upload a dataset file to predict.')
+      setError('Please upload a dataset file first.')
       return
     }
     if (mode === 'existing' && !existingFile) {
@@ -100,152 +178,172 @@ export function PredictionPage() {
       return
     }
 
-    setIsPredicting(true)
     setError('')
-    setResult(null)
+    setIsIterating(true)
+    setIsPredicting(true)
 
     setTimeout(() => {
-      const sourceDesc =
-        mode === 'upload'
-          ? `Uploaded file: ${selectedFile?.name}`
-          : mode === 'existing'
-          ? `Existing file: ${existingFile}`
-          : `Manual input: ${JSON.stringify(inputData)}`
+      const newIteration: Iteration = {
+        id: iterations.length + 1,
+        timestamp: new Date().toLocaleString(),
+        results: generatePredictionResult(iterations.length + 1),
+        parameters: { ...filterValues, selectedParams }
+      }
 
-      const lines = [
-        `Prediction Report`,
-        `Source: ${sourceDesc}`,
-        `Generated: ${new Date().toLocaleString()}`,
-        ``,
-        `--- Summary ---`,
-        `Predicted Temperature: ${(Math.random() * 10 + (inputData.tirePressure || 20)).toFixed(2)} °C`,
-        `Confidence: ${(70 + Math.random() * 25).toFixed(2)}%`,
-        ``,
-        `--- Recommendations ---`,
-        `• Monitor temperature every 6 hours.`,
-        `• Check weight trends weekly.`,
-        `• Re-run analysis after next dataset.`,
-        ``,
-        `--- Raw Parameters ---`,
-        ...ALL_TIRE_PARAMETERS.map(p => `${p.label}: ${filterValues[p.key]}`),
-      ]
-
-      const rawReportText = lines.join('\n')
-      setResult({
-        rawReportText,
-        predictedTemperature: parseFloat(lines[5].split(':')[1]) || undefined,
-        confidence: parseFloat(lines[6].split(':')[1]) || undefined,
-        recommendations: [
-          'Monitor temperature every 6 hours',
-          'Check weight trends weekly',
-          'Re-run analysis after next dataset',
-        ],
-      })
+      setIterations([...iterations, newIteration])
+      setCurrentIterationIndex(iterations.length)
       setIsPredicting(false)
     }, 1200)
   }
 
+  const handleNextIteration = async () => {
+    setIsPredicting(true)
+    
+    setTimeout(() => {
+      const newIteration: Iteration = {
+        id: iterations.length + 1,
+        timestamp: new Date().toLocaleString(),
+        results: generatePredictionResult(iterations.length + 1),
+        parameters: { ...filterValues, selectedParams }
+      }
+
+      setIterations([...iterations, newIteration])
+      setCurrentIterationIndex(iterations.length)
+      setIsPredicting(false)
+    }, 1200)
+  }
+
+  const handleResetIterations = () => {
+    setIterations([])
+    setCurrentIterationIndex(-1)
+    setIsIterating(false)
+    setError('')
+  }
+
+  const handleNavigateIteration = (direction: 'prev' | 'next') => {
+    if (direction === 'prev' && currentIterationIndex > 0) {
+      setCurrentIterationIndex(currentIterationIndex - 1)
+    } else if (direction === 'next' && currentIterationIndex < iterations.length - 1) {
+      setCurrentIterationIndex(currentIterationIndex + 1)
+    }
+  }
+
   const handleDownloadReport = () => {
-    if (!result) return
+    if (currentIterationIndex === -1 || !iterations[currentIterationIndex]) return
+    const result = iterations[currentIterationIndex].results
     const blob = new Blob([result.rawReportText], { type: 'text/plain;charset=utf-8' })
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
-    link.download = 'prediction_report.txt'
+    link.download = `iteration_${iterations[currentIterationIndex].id}_report.txt`
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
     URL.revokeObjectURL(url)
   }
 
-  const smallText = 'text-sm'
+  const handleDownloadAllReports = () => {
+    const allReports = iterations.map(iter => iter.results.rawReportText).join('\n\n' + '='.repeat(80) + '\n\n')
+    const blob = new Blob([allReports], { type: 'text/plain;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = 'all_iterations_report.txt'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  }
+
+  const currentResult = currentIterationIndex >= 0 ? iterations[currentIterationIndex] : null
 
   return (
     <section className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col">
       <div className="px-6 pt-4 pb-2">
-        <h1 className="text-sm font-semibold text-gray-700 tracking-wide uppercase">Prediction Dashboard</h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-sm font-semibold text-gray-700 tracking-wide uppercase">Prediction Dashboard</h1>
+          {iterations.length > 0 && (
+            <div className="text-sm text-gray-600 bg-white px-4 py-2 rounded-lg shadow">
+              Total Iterations: <span className="font-bold text-yellow-600">{iterations.length}</span>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="flex-1 px-6 pb-6">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="grid grid-cols-1 md:grid-cols-2 gap-8 h-[calc(100vh-100px)]"
-        >
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="grid grid-cols-1 md:grid-cols-2 gap-8 h-[calc(100vh-100px)]">
+          
           {/* LEFT SIDE */}
           <Card className="shadow-lg h-full flex flex-col">
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-base font-medium">
-                <Brain className="h-5 w-5" />
-                Input & Filters
-              </CardTitle>
-            </CardHeader>
-            <CardContent className={`flex-1 overflow-y-auto p-4 ${smallText}`}>
-              <div className="flex gap-2 mb-4">
-                <Button variant={mode === 'upload' ? 'default' : 'outline'} className="flex-1" onClick={() => setMode('upload')}>
-                  Upload Dataset
+            <div className="p-4 border-b">
+              <div className="flex items-center gap-2 mb-3">
+                <Brain className="h-5 w-5 text-yellow-600" />
+                <h2 className="text-base font-semibold">Input & Filters</h2>
+              </div>
+              
+              <div className="flex gap-2 mb-3">
+                <Button variant={mode === 'upload' ? 'default' : 'outline'} size="sm" className="flex-1" onClick={() => setMode('upload')}>
+                  Upload
                 </Button>
-                <Button variant={mode === 'manual' ? 'default' : 'outline'} className="flex-1" onClick={() => setMode('manual')}>
-                  Manual Input
+                <Button variant={mode === 'manual' ? 'default' : 'outline'} size="sm" className="flex-1" onClick={() => setMode('manual')}>
+                  Manual
                 </Button>
-                <Button variant={mode === 'existing' ? 'default' : 'outline'} className="flex-1" onClick={() => setMode('existing')}>
-                  Use Existing
+                <Button variant={mode === 'existing' ? 'default' : 'outline'} size="sm" className="flex-1" onClick={() => setMode('existing')}>
+                  Existing
                 </Button>
               </div>
+            </div>
 
+            <div className="flex-1 overflow-y-auto p-4 text-sm">
               {mode === 'upload' && (
-                <div>
+                <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 mb-2">Upload Dataset File</label>
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-blue-400 transition-colors">
-                    <Input id="dataset-upload" type="file" accept=".csv,.xlsx,.json" onChange={handleFileSelect} className="hidden" />
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors">
+                    <input id="dataset-upload" type="file" accept=".csv,.xlsx,.json" onChange={(e) => { setSelectedFile(e.target.files?.[0] ?? null); setError('') }} className="hidden" />
                     <label htmlFor="dataset-upload" className="cursor-pointer flex flex-col items-center">
                       <Upload className="h-10 w-10 text-gray-400 mb-2" />
                       <span className="text-sm text-gray-600">Click to upload dataset</span>
                     </label>
                   </div>
-                  {selectedFile && <p className="text-sm text-green-600 mt-2">Selected: {selectedFile.name}</p>}
+                  {selectedFile && <p className="text-sm text-green-600 mt-2">✓ {selectedFile.name}</p>}
                 </div>
               )}
 
               {mode === 'manual' && (
-                <div className="grid grid-cols-1 gap-3">
+                <div className="grid grid-cols-1 gap-3 mb-4">
                   {ALL_TIRE_PARAMETERS.slice(0, 5).map(p => (
-                    <Input key={p.key} type="text" placeholder={p.label} value={inputData[p.key] || ''} onChange={e => handleInputChange(p.key, e.target.value)} />
+                    <Input key={p.key} type="text" placeholder={p.label} value={inputData[p.key] || ''} onChange={(e: any) => { setInputData((prev: any) => ({ ...prev, [p.key]: e.target.value })); setError('') }} />
                   ))}
                 </div>
               )}
 
               {mode === 'existing' && (
-                <div className="space-y-2">
+                <div className="space-y-2 mb-4">
                   <label className="text-sm font-medium text-gray-700">Select Existing File</label>
-                  <select
-                    className="border rounded-md w-full px-3 py-2"
-                    value={existingFile || ''}
-                    onChange={(e) => setExistingFile(e.target.value)}
-                  >
+                  <select className="border border-gray-300 rounded-lg w-full px-3 py-2 text-sm" value={existingFile || ''} onChange={(e) => { setExistingFile(e.target.value); setError('') }}>
                     <option value="">-- Choose File --</option>
-                    {mockExistingFiles.map((f) => (
-                      <option key={f} value={f}>{f}</option>
-                    ))}
+                    {mockExistingFiles.map(f => <option key={f} value={f}>{f}</option>)}
                   </select>
                 </div>
               )}
 
-              <div className="mt-4">
+              <div>
                 <div className="flex items-center justify-between mb-2">
-                  <div className="text-sm text-gray-700 font-medium">Select Parameters</div>
+                  <div className="text-sm text-gray-700 font-medium">Select Parameters ({selectedParams.length})</div>
                   <Button variant="outline" size="sm" onClick={() => setShowFilters(!showFilters)}>
                     {showFilters ? 'Hide' : 'Show'}
                   </Button>
                 </div>
 
                 {showFilters && (
-                  <div className="border p-2 rounded max-h-64 overflow-y-auto mb-2">
+                  <div className="border border-gray-200 p-3 rounded-lg max-h-64 overflow-y-auto mb-3 bg-gray-50">
                     <div className="grid grid-cols-2 gap-2">
                       {ALL_TIRE_PARAMETERS.map(p => (
-                        <label key={p.key} className="flex items-center gap-2">
-                          <input type="checkbox" checked={selectedParams.includes(p.key)} onChange={() => handleParamToggle(p.key)} />
+                        <label key={p.key} className="flex items-center gap-2 cursor-pointer hover:bg-white p-1 rounded">
+                          <input type="checkbox" checked={selectedParams.includes(p.key)} onChange={() => {
+                            setSelectedParams(prev => prev.includes(p.key) ? prev.filter(k => k !== p.key) : [...prev, p.key])
+                            setError('')
+                          }} className="rounded" />
                           <span className="text-xs">{p.label}</span>
                         </label>
                       ))}
@@ -253,57 +351,114 @@ export function PredictionPage() {
                   </div>
                 )}
 
-                <div className="grid grid-cols-2 gap-4">
-  {ALL_TIRE_PARAMETERS.filter(p => selectedParams.includes(p.key)).map(p => (
-    <FilterPanel
-      key={p.key}
-      filters={[{ ...p, value: filterValues[p.key] }]}
-      onChange={handleFilterChange}
-    />
-  ))}
-</div>
+                <div className="grid grid-cols-2 gap-3 max-h-48 overflow-y-auto">
+                  {ALL_TIRE_PARAMETERS.filter(p => selectedParams.includes(p.key)).map(p => (
+                    <FilterPanel key={p.key} filters={[{ ...p, value: filterValues[p.key] }]} onChange={(key: string, val: any) => { setFilterValues((prev: any) => ({ ...prev, [key]: val })); setError('') }} />
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="p-4 border-t space-y-2">
+              {error && <div className="p-2 bg-red-50 border border-red-200 rounded text-sm text-red-600">{error}</div>}
+              
+              <div className="flex gap-2">
+                <Button onClick={handleStartIterations} disabled={isPredicting || iterations.length > 0} className="flex-1" size="lg">
+                  <Play className="h-4 w-4 mr-2" /> Start Iterations
+                </Button>
+                <Button onClick={handleResetIterations} disabled={iterations.length === 0} variant="outline" size="lg">
+                  <RotateCcw className="h-4 w-4" />
+                </Button>
               </div>
 
-              <Button onClick={handlePredict} disabled={isPredicting} className="w-full mt-4" size="lg">
-                {isPredicting ? <><Loading className="mr-2" />Analyzing...</> : 'Predict Results'}
-              </Button>
-              {error && <div className="mt-3 p-2 bg-red-50 border border-red-200 rounded text-sm text-red-600">{error}</div>}
-            </CardContent>
+              {iterations.length > 0 && (
+                <Button onClick={handleNextIteration} disabled={isPredicting} className="w-full" size="lg" variant="outline">
+                  <SkipForward className="h-4 w-4 mr-2" /> Next Iteration
+                </Button>
+              )}
+            </div>
           </Card>
 
           {/* RIGHT SIDE */}
           <Card className="shadow-lg h-full flex flex-col">
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-base font-medium">
-                <TrendingUp className="h-5 w-5" />
-                Prediction Results
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="flex-1 p-4 overflow-y-auto text-sm">
-              {isPredicting ? (
-                <div className="text-center py-10">
-                  <Loading size="lg" className="mx-auto mb-4" />
-                  <p className="text-gray-600">Running AI prediction analysis...</p>
+            <div className="p-4 border-b">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5 text-yellow-600" />
+                  <h2 className="text-base font-semibold">
+                    {currentResult ? `Iteration ${currentResult.id} Results` : 'Prediction Results'}
+                  </h2>
                 </div>
-              ) : result ? (
-                <div className="whitespace-pre-wrap font-mono text-xs text-gray-800">{result.rawReportText}</div>
-              ) : (
-                <div className="text-center py-10 text-gray-500">
-                  <Brain className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                  <p>Prediction report will appear here as raw text.</p>
-                </div>
-              )}
-            </CardContent>
+                
+                {iterations.length > 1 && (
+                  <div className="flex items-center gap-2">
+                    <Button onClick={() => handleNavigateIteration('prev')} disabled={currentIterationIndex <= 0} variant="ghost" size="sm">
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <span className="text-sm text-gray-600 min-w-[80px] text-center">
+                      {currentIterationIndex + 1} / {iterations.length}
+                    </span>
+                    <Button onClick={() => handleNavigateIteration('next')} disabled={currentIterationIndex >= iterations.length - 1} variant="ghost" size="sm">
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex-1 p-4 overflow-y-auto text-sm">
+              <AnimatePresence mode="wait">
+                {isPredicting ? (
+                  <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-center py-10">
+                    <Loading size="lg" className="mx-auto mb-4" />
+                    <p className="text-gray-600">Running AI prediction analysis...</p>
+                    <p className="text-sm text-gray-500 mt-2">Iteration {iterations.length + 1}</p>
+                  </motion.div>
+                ) : currentResult ? (
+                  <motion.div key={currentResult.id} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-4">
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-semibold text-blue-700">ITERATION {currentResult.id}</span>
+                        <span className="text-xs text-blue-600">{currentResult.timestamp}</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <div className="text-xs text-gray-600">Temperature</div>
+                          <div className="text-lg font-bold text-blue-700">{currentResult.results.predictedTemperature}°C</div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-gray-600">Confidence</div>
+                          <div className="text-lg font-bold text-green-600">{currentResult.results.confidence}%</div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="whitespace-pre-wrap font-mono text-xs text-gray-800 bg-gray-50 p-4 rounded-lg border">
+                      {currentResult.results.rawReportText}
+                    </div>
+                  </motion.div>
+                ) : (
+                  <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-10 text-gray-500">
+                    <Brain className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                    <p>Click "Start Iterations" to begin analysis</p>
+                    <p className="text-sm mt-2">Results will appear here with iteration tracking</p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
             <div className="p-4 border-t flex gap-2">
-              <Button onClick={handleDownloadReport} disabled={!result} className="flex-1" size="lg">
+              <Button onClick={handleDownloadReport} disabled={!currentResult} className="flex-1" size="lg">
                 <Download className="h-4 w-4 mr-2" /> Download Report
               </Button>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  if (result) navigator.clipboard.writeText(result.rawReportText)
-                }}
-              >
+              {iterations.length > 1 && (
+                <Button onClick={handleDownloadAllReports} variant="outline" size="lg">
+                  Download All
+                </Button>
+              )}
+              <Button variant="outline" size="lg" onClick={() => {
+                if (currentResult) navigator.clipboard.writeText(currentResult.results.rawReportText)
+              }} disabled={!currentResult}>
                 Copy
               </Button>
             </div>
