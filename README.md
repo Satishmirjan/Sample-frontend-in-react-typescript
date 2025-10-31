@@ -194,3 +194,19 @@ The application supports multiple file formats:
 
 For support and questions, please contact the development team or create an issue in the repository.
 
+
+some installations and also the requirements
+1) Create a Vite + React + TypeScript app
+npm create vite@latest tyre-data-analyzer -- --template react-ts
+cd tyre-data-analyzer
+
+# 2) Install runtime dependencies
+npm i react-router-dom axios framer-motion lucide-react clsx tailwind-merge @radix-ui/react-slot @radix-ui/react-select class-variance-authority tailwindcss-animate
+
+# 3) Install dev dependencies (matching your versions)
+npm i -D @vitejs/plugin-react@^4.1.1 typescript@^5.2.2 vite@^5.0.0 tailwindcss@^3.3.5 postcss@^8.4.31 autoprefixer@^10.4.16 eslint@^8.53.0 @typescript-eslint/parser@^6.10.0 @typescript-eslint/eslint-plugin@^6.10.0 eslint-plugin-react-hooks@^4.6.0 eslint-plugin-react-refresh@^0.4.4 @types/react@^18.2.37 @types/react-dom@^18.2.15
+
+# 4) Initialize Tailwind (creates tailwind.config.js and postcss.config.js)
+npx tailwindcss init -p
+
+
