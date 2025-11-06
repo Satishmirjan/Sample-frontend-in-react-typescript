@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Uploaded files (keep folder structure)
+uploads/*
+!uploads/.gitkeep
+output/*
+!output/.gitkeep
+
+# Environment variables
+.env
+.env.local
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Node modules (if any leftover)
+node_modules/
+
+# Temporary files
+*.tmp
+*.temp
+~$*
